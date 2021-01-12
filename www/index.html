@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no">
+	<meta http-equiv="Content-Security-Policy" content="default-src * data:; connect-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+	<script src="lib/onsenui/js/onsenui.min.js"></script>
+	<link rel="stylesheet" href="components/loader.css">
+	<link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
+	<link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
+	<link rel="stylesheet" href="css/style.css">
+	<script src="components/loader.js"></script>
+	<link rel="stylesheet" href="components/loader.css">
+	<link rel="stylesheet" href="css/styles.css">
+	<script src="js/cssua.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/8.2.2/firebase.js"></script>
+	<script src="js/app.js"></script>
+	<script src="js/index.js"></script>
+	<script>
+		// Onsen UIのスタイル定義
+    ons.forcePlatformStyling();
+
+	</script>
+</head>
+
+<body>
+	<ons-navigator id="navigator" page="page1.html"></ons-navigator>
+
+	<template id="page1.html">
+		<ons-page id="first-page">
+			<ons-toolbar>
+				<div class="center">授業支援うなずきアプリ</div>
+			</ons-toolbar>
+			<div class="content">
+				<p>事前に指定された授業名と<br>学籍番号を入力してください。</p>
+				<div class="loginform">
+					<p>
+						<ons-input id="classname" modifier="underbar" placeholder="授業名" required></ons-input>
+					</p>
+					<p>
+						<ons-input id="username" modifier="underbar" placeholder="学籍番号" required></ons-input>
+					</p>
+
+				</div>
+				<ons-button id="push-button" onclick="login()" modifier="large">入室</ons-button>
+			</div>
+		</ons-page>
+	</template>
+
+
+
+	<template id="page2.html">
+		<ons-page id="second-page">
+			<ons-toolbar>
+				<div class="left">
+					<ons-back-button>退室</ons-back-button>
+				</div>
+        <div id="myclass" class="center"></div>
+			</ons-toolbar>
+
+      <div id="myname"></div>
+			<div id="timer"></div>
+      <br>
+			<div id="message"></div>
+			<div id="nods-view">
+			</div>
+
+			<div data-role="nod"  class="button_wrapper">
+				<a href="#list-nod" class="btn-real-dent" value="Save" onclick="addNod()">
+					<i class="nod"></i>
+				</a>
+			</div>
+
+		</ons-page>
+	</template>
+</body>
+
+</html>
