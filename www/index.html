@@ -1,6 +1,5 @@
 <!DOCTYPE HTML>
 <html>
-
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no">
@@ -21,13 +20,10 @@
 	<script>
 		// Onsen UIのスタイル定義
     ons.forcePlatformStyling();
-
 	</script>
 </head>
-
 <body>
 	<ons-navigator id="navigator" page="page1.html"></ons-navigator>
-
 	<template id="page1.html">
 		<ons-page id="first-page">
 			<ons-toolbar>
@@ -42,39 +38,40 @@
 					<p>
 						<ons-input id="username" modifier="underbar" placeholder="学籍番号" required></ons-input>
 					</p>
-
 				</div>
-				<ons-button id="push-button" onclick="login()" modifier="large">入室</ons-button>
+				<ons-button id="push-button"  modifier="large">入室</ons-button>
 			</div>
 		</ons-page>
 	</template>
-
-
 
 	<template id="page2.html">
 		<ons-page id="second-page">
 			<ons-toolbar>
 				<div class="left">
-					<ons-back-button>退室</ons-back-button>
+					<ons-back-button id = "pop-button">退室</ons-back-button>
 				</div>
         <div id="myclass" class="center"></div>
+        <!-- アプリ評価実験時に使用
+        <div id="zikken" class = "right" onclick="zikkenStart()">
+          <span  id="menu-open" style="display: block">
+            <ons-button>実験開始</ons-button>
+            </span>
+        <span  id="menu-close" style="display: none">実験中</span>
+        </div>
+        -->
 			</ons-toolbar>
-
       <div id="myname"></div>
-			<div id="timer"></div>
+			<div id="timer" style="z-index:100"></div>
       <br>
-			<div id="message"></div>
-			<div id="nods-view">
+			<div id="message" style="z-index:100"></div>
+      <div data-role="nod"  class="button_wrapper" style="z-index:1">
+      <div id="nods-view" style="z-index:1">
 			</div>
-
-			<div data-role="nod"  class="button_wrapper">
-				<a href="#list-nod" class="btn-real-dent" value="Save" onclick="addNod()">
-					<i class="nod"></i>
+				<a href="#list-nod" class="btn-real-dent" style="z-index:30" value="Save" onclick="addNod()">
+				<i class="nod"></i>
 				</a>
 			</div>
-
 		</ons-page>
 	</template>
 </body>
-
 </html>

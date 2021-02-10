@@ -1,4 +1,3 @@
-
 var firebaseConfig = {
   apiKey: "AIzaSyAmIRvMh7LECi_eoRrzpa6rN3n92c2PeuU",
   authDomain: "mikamisotsuken.firebaseapp.com",
@@ -7,36 +6,29 @@ var firebaseConfig = {
   messagingSenderId: "413021034693",
   appId: "1:413021034693:web:9faa29d36c9d2a8a96b8ac"
 };
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-// Vueの処理 
-
-
 var db = firebase.firestore();
-/*
-db.collection('nod')
-  .get()
-  .then((querySnapshot)=>{
-    querySnapshot.forEach((doc)=>{
-      console.log(doc.data().nodclass); // textに先ほど追加したデータが入っています。
-    })
-  });
-*/
-// Page init event
+
+class Nod { //クライアント表示用うなずきクラス
+  constructor(time) {
+    this.time = time;
+  }
+}
 var username;   // ユーザー名
 var classname;  //授業名
+let nods = []; //クライアント表示用うなずき配列
+let searchNods = 0; //うなずき配列探索開始地点
+let start = new Date(); //入室時刻
+var myClock; //在室時間
+var room; //入室フラグ
 
 
-// Page init event
-document.addEventListener('init', function (event) {
+document.addEventListener('init', function (event) { // 入室とページ遷移
   var page = event.target;
-
-  if (page.matches('#first-page')) {
-
+  if (page.matches('#first-page')) {//入室処理
     page.querySelector('#push-button').onclick = function () {
       username = $('#username').val();
       classname = $('#classname').val();
-
       if ($('#classname').val() == '') {
         ons.notification.alert('授業名を入力してください');
         return;
@@ -45,174 +37,126 @@ document.addEventListener('init', function (event) {
         ons.notification.alert('学籍番号を入力してください');
         return;
       }
-      
+      let now = firebase.firestore.Timestamp.now();
+      db.collection("classes").doc(classname).collection("members").doc(username).set({//学籍番号コレクションにユーザと最終入力時刻を更新
+        noduser: username,
+        finalaction: now
+      })
       document.querySelector('#navigator').pushPage('page2.html');
     };
-  } else if (page.matches('#second-page')) {
+  } else if (page.matches('#second-page')) { 
     page.querySelector('#pop-button').onclick = function () {
+      let _now = firebase.firestore.Timestamp.now();
+      /* うなずきアプリ評価実験時に使用
+      db.collection("classes").doc(classname).collection("members").doc(username).collection("accesses").add({  //入退室コレクションに追加
+        entrance: false,
+        breaktime: _now
+      })
+      */
       document.querySelector('#navigator').popPage();
     };
-
   }
 });
 
-class Nod {
-  constructor(time) {
-    this.time = time;
+document.addEventListener('show', function (event) {
+  //入室時，退室時のタイマー処理
+  var page = event.target;
+  if (page.id === "second-page") {
+    room = true;
+    startClock();
   }
-}
+  if (page.id === "first-page") {
+    endClock();
+  }
+}, false);
 
-var username;   //ユーザ名
-var classname;  //授業名
+document.addEventListener('deviceready', () => {
+  // アプリがバックグラウンドに移行した時のタイマー処理
+  document.addEventListener('pause', () => {
+    if (room == true) {
+      let _now = firebase.firestore.Timestamp.now();
+      /*うなずきアプリ評価実験時に使用
+      db.collection("classes").doc(classname).collection("members").doc(username).collection("accesses").add({  //入退室コレクションに追加
+        entrance: false,
+        breaktime: _now
+      })
+      */
+      endClock();
+    }
+  });
+  document.addEventListener('resume', () => {
+    setTimeout(() => {
+      startClock();
+      room = true;
+    }, 0);
+  });
+});
 
-function addNod() {
+function addNod() { //うなずき追加
   let now = new Date();
-  nods.push(new Nod(now));
+  let _now = firebase.firestore.Timestamp.now();
+  nods.push(new Nod(now));   //クライアント表示用うなずき配列に追加
   $("#nod-list").append("<p>" + now.getMonth() + "/" + now.getDate() + ":" + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds() + "</p></li>")
-
-  //DB上に登録
-  db.collection("nod").add({
+  db.collection("classes").doc(classname).collection("nods").add({  //うなずきコレクションに追加
     noduser: username,
-    nodclass: classname,
-    nodtime: now
+    nodtime: _now
   })
-    .then(function (docRef) {
-      console.log("Document written with ID: ", docRef.id);
-    })
-    .catch(function (error) {
-      console.error("Error adding document: ", error);
-    });
-
+  db.collection("classes").doc(classname).collection("members").doc(username).set({ //ユーザの最終入力時刻更新
+    noduser: username,
+    finalaction: _now
+  })
 };
 
-let nods = []; //クライアント表示用うなずき配列
-let nodsLifeCount = 0; //うなずき配列探索開始地点
-let start = new Date(); //入室時間
-var myClock; //入室中のタイマー
-
-
 function clock() { //1秒ごとに連続授業時間とうなずき表示を更新する関数
-
   let now = new Date();
   let date = document.getElementById('date');
-  let timer = document.getElementById('timer');
-  let message =document.getElementById('message');
-  let elapse = (now.getTime() - start.getTime()) / 1000; 
-  var m = parseInt((elapse / 60));
-  var s = parseInt(elapse % 60);
-  timer.textContent = "在室時間  " + m + "分" + parseInt(elapse % 60)+"秒";
   var list = 0; //表示するうなずき数
   var pCount = 0; //今回の実行で新たに除外されるうなずき数
-
-
   if (nods.length > 0) {
-    for (var i = nodsLifeCount; i < nods.length; i++) {
-      if (nods[i].time.getTime() + 20000 > now.getTime()) {//探索中のうなずきが現在時刻から20秒以内の場合
-        list += 1; //表示するうなずきを追加(20秒以内のうなずきである) 
+    for (var i = searchNods; i < nods.length; i++) {
+      if (nods[i].time.getTime() + 300000 > now.getTime()) {//探索中のうなずきが現在時刻から5分以内の場合
+        list += 1; //表示するうなずきを追加(5分以内のうなずきである) 
       } else {
         pCount += 1;//除外するうなずきを追加
       }
     }
   }
-  nodsLifeCount += pCount; //次回の探索開始地点を更新
-  document.getElementById("nods-view").style.setProperty('--zoom', Math.log(list + 1.0) * 0.4 + 1);
-
-  if(m>85){message.innerText = "おめでとう！\n最後まで他のアプリを開かず受講できました！";
-  }else if(m>45&&list>3){message.innerText = "授業の半分以上を共にしています．あとひと頑張り！";
-  }else if(m>15&&list>3){message.innerText = "素晴らしい集中力です．その調子！";
-  }else if(m>3&&list>1){message.innerText = "誘惑に耐えて受講できています！";
-  }else if(m<1&&list<1){message.innerText = "今日もがんばりましょう！\nうなずきはボタンタップ！";
-  }else{message.innerText ="";}
+  searchNods += pCount; //次回の探索開始地点を更新
+  document.getElementById("nods-view").style.setProperty('--zoom', (list + 1) ** 0.25);
 }
 
-function startClock() {
-
+function startClock() { //タイマー開始
   var myclass = document.getElementById('myclass');
   var myname = document.getElementById('myname');
-  myclass.textContent= classname;
-  myname.textContent= username + "で入室中";
+  myclass.textContent = classname;
+  myname.textContent = username + "で入室中";
   start = new Date();
   nods = [];
-  nodsLifeCount = 0;
+  searchNods = 0;
   clock();
   myClock = setInterval(clock, 1000);
+  let _now = firebase.firestore.Timestamp.now();
+  db.collection("classes").doc(classname).collection("members").doc(username).collection("accesses").add({  //入退室DBに追加
+    entrance: true,
+    breaktime: _now
+  })
+  //  db.collection("classes").doc(classname).collection("members").doc(username).collection("zikkenstart").orderBy("viewStart", "desc").limit(1)
 }
 
-function endClock() {
+function endClock() {  //タイマー終了
   clearInterval(myClock);
+  room = false;
 }
 
-
-document.addEventListener('show', function (event) {
-  var page = event.target;
-  if (page.id === "second-page") {
-    startClock();
-    console.log("clockstart")
-  }
-  if (page.id === "first-page") {
-    endClock();
-    console.log("clockstop")
-  }
-}, false);
-
-document.addEventListener('deviceready', () => {
-  // アプリがバックグラウンドに移行した時に処理を行う
-  document.addEventListener('pause', () => {
-    endClock();
-    console.log('Pause!');
-  });
-});
-document.addEventListener('resume', () => {
-  setTimeout(() => {
-    startClock();
-    console.log('Resume!');
-  }, 0);
-});
-
-/*
-window.addEventListener("load", function(){
-    clock();
-});
-*/
-
-/* //質問
-function addTodo(camera_url) {
-    var body = $("#todo-body").val();
-
-    $.mobile.changePage($("#list-page"));
-    $("#todo-list").append("<p>" + body + "</p></li>")
-    $("#todo-list").listview('refresh');
-};
-*/
-
-/* //疑問
-let moveY =0; 
-window.addEventListener("touchstart", function(event) {
-  var touchObject = event.changedTouches[0] ;
-  moveY = touchObject.pageY ;	
-});
-window.addEventListener("touchend", function(event) {
-  var touchObject = event.changedTouches[0] ;
-  var y = touchObject.pageY ;	
-  if(moveY > y+200){
-
-    addQ();
-  }
-});
-
-function addQ() {
-   let now = new Date();
-       document.getElementById("questions-view").style.setProperty('--move',1000);
-   questions.push(new Question(now));
-    $("#Q-list").append("<p> 疑問が発生！" +now.getMonth() + "/" + now.getDate() + ":" +now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds()+"</p></li>")
-    $("#Q-list").listview('refresh');
-};
-
-class Question {
- constructor(time) {
-  this.time = time;
- }
+/* うなずきアプリ評価実験時に使用
+function zikkenStart() {
+  let now = new Date();
+  let _now = firebase.firestore.Timestamp.now();
+  db.collection("classes").doc(classname).collection("members").doc(username).collection("zikkenstart").add({
+    viewStart: now
+  })
+  document.getElementById('menu-open').style.display = "none";
+  //idのmenu-open部分を非表示に設定
+  document.getElementById('menu-close').style.display = "block";
 }
-let questions =[];
-let questionsLifeCount = 0;
 */
